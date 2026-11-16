@@ -2,7 +2,9 @@
 
 import pytest
 
-from ingest.convert import dash_pairs, is_page_number, remove_repeats, repair_dashes, strip_html, vocabulary
+from ingest.convert import (
+    dash_pairs, is_page_number, join_pages, remove_repeats, repair_dashes, split_pages, strip_html, vocabulary,
+)
 
 
 # --- page numbers: every format pymupdf4llm produced in the bake-off ---
@@ -136,3 +138,13 @@ def test_each_pair_handled_once():
     pairs = [(1, "off", "-", "campus"), (3, "off", "-", "campus")]
     text, log = repair_dashes("offcampus and offcampus", pairs, set())
     assert text == "off-campus and off-campus" and len(log) == 1 and log[0]["count"] == 2
+
+
+# --- page markers (cleaned Markdown keeps page boundaries) ---
+
+def test_pages_round_trip_through_markers():
+    pages = ["# CSE 575: Statistical Machine Learning\n\nText.", "", "Last page."]
+    markdown = join_pages(pages)
+    assert markdown.startswith("<!-- page 1 -->\n# CSE 575")
+    assert "<!-- page 3 -->\nLast page." in markdown
+    assert [p.strip() for p in split_pages(markdown)] == [p.strip() for p in pages]

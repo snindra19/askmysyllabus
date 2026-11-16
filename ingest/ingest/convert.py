@@ -109,6 +109,15 @@ def repair_dashes(text, pairs, vocabulary):
     return text, log
 
 
+def join_pages(pages):
+    """Start each page with <!-- page N --> so later steps can find page 1 and cite pages."""
+    return "".join(f"<!-- page {n} -->\n{p.strip()}\n\n" for n, p in enumerate(pages, start=1))
+
+
+def split_pages(markdown):
+    return re.split(r"<!-- page \d+ -->\n", markdown)[1:]
+
+
 def convert(pdf, vocabulary):
     """PDF -> (cleaned Markdown, removal log)."""
     import pymupdf
@@ -118,7 +127,7 @@ def convert(pdf, vocabulary):
     pages, log = remove_repeats([strip_html(c["text"]) for c in chunks])
     with pymupdf.open(pdf) as doc:
         pairs = dash_pairs([page.get_text() for page in doc])
-    markdown, dash_log = repair_dashes("\n".join(pages), pairs, vocabulary)
+    markdown, dash_log = repair_dashes(join_pages(pages), pairs, vocabulary)
     return markdown, log + dash_log
 
 
